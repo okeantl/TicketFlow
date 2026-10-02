@@ -1,5 +1,6 @@
 services:
-  db:
+
+  postgres:
     image: postgres:15
     ports:
       - "5432:5432"
@@ -42,6 +43,22 @@ services:
       start_period: 10s
     env_file:
       - .env
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   db-data:
