@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
+from src.core.exceptions import NotFoundError
 from src.core.redis import get_redis
 from src.models import Event
 from src.modules.catalog.schemas import EventRead
@@ -21,7 +22,7 @@ class CatalogService:
 
         return list(events_list)
 
-    async def get_event(self, event_id: int) -> Event | EventRead | None:
+    async def get_event(self, event_id: int) -> Event | EventRead:
         cache_key = f"event:{event_id}"
         cached = await self.redis.get(cache_key)
         if cached:
@@ -34,7 +35,7 @@ class CatalogService:
                 cache_key, EventRead.model_validate(event).model_dump_json(), ex=60
             )
             return event
-        return None
+        raise NotFoundError("Event not found")
 
 
 def get_catalog_service(

@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
+from src.models import User
+from src.modules.auth.dependencies import get_current_user
 from src.modules.auth.schemas import Token, UserLogin, UserRead, UserRegister
 from src.modules.auth.service import AuthService, get_auth_service
 
@@ -10,26 +12,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def register(
     data: UserRegister, service: AuthService = Depends(get_auth_service)
 ):
-    user = await service.register(data)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
-        )
-    return user
+    return await service.register(data)
 
 
 @router.post("/login", response_model=Token)
 async def login(data: UserLogin, service: AuthService = Depends(get_auth_service)):
     token = await service.login(data)
-    if token is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
-        )
     return Token(access_token=token)
-
-
-from src.models import User
-from src.modules.auth.dependencies import get_current_user
 
 
 @router.get("/me", response_model=UserRead)
