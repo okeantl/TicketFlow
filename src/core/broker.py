@@ -1,5 +1,6 @@
-import aio_pika
 import asyncio
+
+import aio_pika
 
 from src.core.config import get_settings
 
@@ -7,7 +8,7 @@ config = get_settings()
 _connection: aio_pika.abc.AbstractRobustConnection | None = None
 
 
-async def connect_broker():
+async def connect_broker() -> aio_pika.abc.AbstractRobustConnection:
     global _connection
     for attempt in range(1, 6):
         try:
