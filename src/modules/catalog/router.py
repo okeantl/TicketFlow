@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.modules.catalog.schemas import EventRead
 from src.modules.catalog.service import CatalogService, get_catalog_service
@@ -17,6 +17,8 @@ async def get_event(
 ):
     event = await service.get_event(event_id)
     if event is None:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Event not found"
+        )
     else:
         return event

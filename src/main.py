@@ -7,6 +7,7 @@ from sqlalchemy import text
 from src.core.broker import close_broker, connect_broker, get_broker_connection
 from src.core.database import engine
 from src.core.redis import redis
+from src.modules.auth.router import router as auth_router
 from src.modules.catalog.router import router as catalog_router
 
 
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="TicketFlow", lifespan=lifespan)
 app.include_router(catalog_router)
+app.include_router(auth_router)
 
 
 @app.get("/health")
