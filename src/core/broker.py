@@ -3,6 +3,7 @@ import json
 
 import aio_pika
 import structlog
+from aio_pika.abc import HeadersType
 
 from src.core.config import get_settings
 
@@ -27,14 +28,17 @@ async def connect_broker() -> aio_pika.abc.AbstractRobustConnection:
     raise RuntimeError("Не удалось подключиться к RabbitMQ после 5 попыток")
 
 
-async def publish_message(queue_name: str, message: dict) -> None:
+async def publish_message(
+    queue_name: str, message: dict, headers: dict | None = None
+) -> None:
     if _channel is None:
         raise RuntimeError(
             "Broker channel is not initialized - call connect_broker() first"
         )
     await _channel.declare_queue(queue_name, durable=True)
     await _channel.default_exchange.publish(
-        aio_pika.Message(body=json.dumps(message).encode()), routing_key=queue_name
+        aio_pika.Message(body=json.dumps(message).encode(), headers=headers or {}),
+        routing_key=queue_name,
     )
 
 
@@ -45,3 +49,7 @@ async def close_broker() -> None:
 
 def get_broker_connection():
     return _connection
+
+
+def get_broker_channel():
+    return _channel
