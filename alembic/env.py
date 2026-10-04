@@ -9,7 +9,8 @@ from alembic import context
 config = context.config
 from src.core.config import get_settings
 
-config.set_main_option("sqlalchemy.url", get_settings().DATABASE_URL)
+if not config.get_main_option("sqlalchemy.url"):
+    config.set_main_option("sqlalchemy.url", get_settings().DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
