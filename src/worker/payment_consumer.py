@@ -8,7 +8,6 @@ import structlog
 from sqlalchemy import select
 
 from src.core.broker import connect_broker, get_broker_channel, publish_message
-from src.core.config import get_settings
 from src.core.database import SessionLocal
 from src.core.redis import redis
 from src.models import Order
@@ -47,6 +46,7 @@ async def main() -> None:
                 if order is None:
                     return
                 print(order)
+                should_notify = False
                 if mock_charge_payment(order.total_amount):
                     order.status = OrderStatus.PAID
                     result = await db.execute(
@@ -62,9 +62,14 @@ async def main() -> None:
                             continue
                         seat.status = SeatStatus.SOLD
                         await redis.delete(f"seat_lock:{seat.id}")
+                    should_notify = True
                 else:
                     order.status = OrderStatus.FAILED
                 await db.commit()
+                if should_notify:
+                    await publish_message(
+                        "notification.send_ticket", {"order_id": order.id}
+                    )
         except Exception as e:
             logger.warning(
                 "payment_processing_failed",
