@@ -13,6 +13,7 @@ from src.core.redis import redis
 from src.modules.auth.router import router as auth_router
 from src.modules.booking.router import router as booking_router
 from src.modules.catalog.router import router as catalog_router
+from src.modules.orders.router import router as order_router
 
 
 @asynccontextmanager
@@ -35,6 +36,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 app.include_router(catalog_router)
 app.include_router(auth_router)
 app.include_router(booking_router)
+app.include_router(order_router)
 
 
 @app.get("/health")
