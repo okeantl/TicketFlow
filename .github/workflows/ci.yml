@@ -8,6 +8,13 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql+psycopg://test:test@localhost:5432/test
+      REDIS_URL: redis://localhost:6379/0
+      RABBITMQ_URL: amqp://guest:guest@localhost:5672/
+      SECRET_KEY: test-secret-key-for-ci
+      ENVIRONMENT: test
+      LOG_LEVEL: INFO
     steps:
       - uses: actions/checkout@v4
 
