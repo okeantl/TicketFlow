@@ -20,10 +20,7 @@ logger = structlog.get_logger(__name__)
 
 def mock_charge_payment(amount) -> bool:
     num = random.random()
-    if num >= 0.7:
-        return False
-    else:
-        return True
+    return num < 0.7
 
 
 async def main() -> None:
@@ -49,15 +46,15 @@ async def main() -> None:
                 should_notify = False
                 if mock_charge_payment(order.total_amount):
                     order.status = OrderStatus.PAID
-                    result = await db.execute(
+                    order_item_result = await db.execute(
                         select(OrderItem).where(OrderItem.order_id == order.id)
                     )
-                    order_item = result.scalars().all()
+                    order_item = order_item_result.scalars().all()
                     for item in order_item:
-                        result = await db.execute(
+                        seat_result = await db.execute(
                             select(Seat).where(Seat.id == item.seat_id)
                         )
-                        seat = result.scalars().first()
+                        seat = seat_result.scalars().first()
                         if seat is None:
                             continue
                         seat.status = SeatStatus.SOLD

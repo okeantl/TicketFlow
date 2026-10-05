@@ -3,7 +3,6 @@ import json
 
 import aio_pika
 import structlog
-from aio_pika.abc import HeadersType
 
 from src.core.config import get_settings
 

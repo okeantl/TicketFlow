@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi import Depends
 from redis.asyncio import Redis
 from sqlalchemy import select
@@ -27,7 +29,7 @@ class OrderService:
             if locked != str(user_id):
                 raise AlreadyExistsError("Seat does not belong to this user")
             list_seat.append(seat)
-        total_amount = 0
+        total_amount = Decimal(0)
         for seat in list_seat:
             total_amount += seat.price
         order = Order(

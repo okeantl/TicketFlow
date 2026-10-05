@@ -1,7 +1,9 @@
-from src.models.base import Base
-from src.models.event import Event
-from src.models.order import Order, OrderStatus
-from src.models.order_item import OrderItem
-from src.models.payment import Payment
-from src.models.seat import Seat, SeatStatus
-from src.models.user import User
+from src.models.base import Base as Base
+from src.models.event import Event as Event
+from src.models.order import Order as Order
+from src.models.order import OrderStatus as OrderStatus
+from src.models.order_item import OrderItem as OrderItem
+from src.models.payment import Payment as Payment
+from src.models.seat import Seat as Seat
+from src.models.seat import SeatStatus as SeatStatus
+from src.models.user import User as User

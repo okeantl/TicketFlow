@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from src.core.exceptions import AlreadyExistsError
@@ -9,7 +9,10 @@ from src.modules.booking.service import BookingService
 
 
 async def test_concurrent_hold_only_one_succeeds(db_session, redis_client):
-    event = Event(title="Test Concert", starts_at=datetime(2026, 12, 1, 19, 0))
+    event = Event(
+        title="Test Concert",
+        starts_at=datetime(2026, 12, 1, 19, 0, tzinfo=timezone.utc),
+    )
     db_session.add(event)
     await db_session.flush()
     seat = Seat(
