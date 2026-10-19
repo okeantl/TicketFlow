@@ -22,17 +22,27 @@ async def main() -> None:
     queue = await channel.declare_queue("notification.send_ticket", durable=True)
 
     async def on_message(message):
-        data = json.loads(message.body.decode())
-        order_id = data["order_id"]
+        order_id = None
         try:
+            data = json.loads(message.body.decode())
+            order_id = data["order_id"]
             async with SessionLocal() as db:
                 result = await db.execute(select(Order).where(Order.id == order_id))
                 order = result.scalars().first()
                 if order is None:
+                    logger.warning(
+                        "order not found",
+                        order_id=order_id,
+                    )
                     return
                 result = await db.execute(select(User).where(User.id == order.user_id))
                 user = result.scalars().first()
                 if user is None:
+                    logger.warning(
+                        "user not found",
+                        order_id=order_id,
+                        user_id=order.user_id,
+                    )
                     return
                 result = await db.execute(
                     select(OrderItem).where(OrderItem.order_id == order.id)
@@ -48,7 +58,10 @@ async def main() -> None:
                         continue
                     seats_info.append(f"{seat.row}{seat.number}")
                 logger.info(
-                    f"отправлен билет на {user.email} для заказа{order_id} места {seats_info}"
+                    "Ticket sent",
+                    user_email=user.email,
+                    order_id=order_id,
+                    seats_info=seats_info,
                 )
         except Exception as e:
             logger.warning(
@@ -56,7 +69,8 @@ async def main() -> None:
                 order_id=order_id,
                 error=str(e),
             )
-        await message.ack()
+        finally:
+            await message.ack()
 
     await queue.consume(on_message)
     await asyncio.Future()

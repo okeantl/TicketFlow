@@ -23,6 +23,18 @@ def mock_charge_payment(amount) -> bool:
     return num < 0.7
 
 
+def parse_order_id(body: bytes) -> int | None:
+    try:
+        data = json.loads(body.decode())
+        value = data["order_id"]
+    except (ValueError, KeyError, TypeError):
+        return None
+
+    if not isinstance(value, int):
+        return None
+    return value
+
+
 async def main() -> None:
     await connect_broker()
     channel = get_broker_channel()
@@ -32,17 +44,25 @@ async def main() -> None:
     await channel.declare_queue("payment.process.dlq", durable=True)
 
     async def on_message(message: aio_pika.abc.AbstractIncomingMessage) -> None:
+        order_id: int | None = None
         MAX_RETRIES = 3
         retry_count = cast(int, (message.headers or {}).get("x-retry-count", 0))
-        data = json.loads(message.body.decode())
         try:
-            order_id = data["order_id"]
+            order_id = parse_order_id(message.body)
+            if order_id is None:
+                raw = message.body.decode(errors="replace")
+                logger.warning("malformed_message", raw=raw)
+                await publish_message("payment.process.dlq", {"raw": raw})
+                return
             async with SessionLocal() as db:
                 result = await db.execute(select(Order).where(Order.id == order_id))
                 order = result.scalars().first()
                 if order is None:
+                    logger.warning(
+                        "order_not_found",
+                        order_id=order_id,
+                    )
                     return
-                print(order)
                 should_notify = False
                 if mock_charge_payment(order.total_amount):
                     order.status = OrderStatus.PAID
@@ -82,8 +102,8 @@ async def main() -> None:
                 )
             else:
                 await publish_message("payment.process.dlq", {"order_id": order_id})
-
-        await message.ack()
+        finally:
+            await message.ack()
 
     await queue.consume(on_message)
     await asyncio.Future()
