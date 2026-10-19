@@ -55,12 +55,21 @@ async def main() -> None:
                 await publish_message("payment.process.dlq", {"raw": raw})
                 return
             async with SessionLocal() as db:
-                result = await db.execute(select(Order).where(Order.id == order_id))
+                result = await db.execute(
+                    select(Order).where(Order.id == order_id).with_for_update()
+                )
                 order = result.scalars().first()
                 if order is None:
                     logger.warning(
                         "order_not_found",
                         order_id=order_id,
+                    )
+                    return
+                if order.status is not OrderStatus.PENDING:
+                    logger.info(
+                        "order_already_processed",
+                        order_id=order_id,
+                        status=order.status.value,
                     )
                     return
                 should_notify = False
