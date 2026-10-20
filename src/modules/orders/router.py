@@ -15,3 +15,12 @@ async def create_orders(
     user: User = Depends(get_current_user),
 ):
     return await service.create_order(user.id, data)
+
+
+@router.get("/{order_id}", response_model=OrderRead)
+async def get_order(
+    order_id: int,
+    service: OrderService = Depends(get_orders_service),
+    user: User = Depends(get_current_user),
+):
+    return await service.get_order(order_id, user.id)

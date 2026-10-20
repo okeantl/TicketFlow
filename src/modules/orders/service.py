@@ -59,6 +59,15 @@ class OrderService:
         )
         return order
 
+    async def get_order(self, order_id: int, user_id: int) -> Order:
+        result = await self.db.execute(
+            select(Order).where(Order.id == order_id, Order.user_id == user_id)
+        )
+        order = result.scalars().first()
+        if order is None:
+            raise NotFoundError("Order not found")
+        return order
+
 
 def get_orders_service(
     db: AsyncSession = Depends(get_db),
