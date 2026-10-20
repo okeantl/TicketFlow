@@ -20,14 +20,26 @@ class OrderService:
 
     async def create_order(self, user_id: int, data: OrderCreate) -> Order:
         list_seat = []
-        for seat_id in data.seat_ids:
-            result = await self.db.execute(select(Seat).where(Seat.id == seat_id))
+        for seat_id in sorted(set(data.seat_ids)):
+            result = await self.db.execute(
+                select(Seat).where(Seat.id == seat_id).with_for_update()
+            )
             seat = result.scalars().first()
             if seat is None:
                 raise NotFoundError(detail=f"Seat is {seat_id} not found")
             locked = await self.redis.get(f"seat_lock:{seat_id}")
             if locked != str(user_id):
                 raise AlreadyExistsError("Seat does not belong to this user")
+            active_result = await self.db.execute(
+                select(OrderItem.id)
+                .join(Order)
+                .where(
+                    OrderItem.seat_id == seat_id,
+                    Order.status.in_([OrderStatus.PENDING, OrderStatus.PAID]),
+                )
+            )
+            if active_result.scalars().first() is not None:
+                raise AlreadyExistsError("Seat already has an active order")
             list_seat.append(seat)
         total_amount = Decimal(0)
         for seat in list_seat:

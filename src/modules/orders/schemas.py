@@ -1,11 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class OrderCreate(BaseModel):
-    seat_ids: list[int]
+    seat_ids: list[int] = Field(min_length=1)
 
 
 class OrderRead(BaseModel):
