@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from src.modules.catalog.schemas import EventRead
+from src.modules.catalog.schemas import EventRead, SeatRead
 from src.modules.catalog.service import CatalogService, get_catalog_service
 
 router = APIRouter(prefix="/events", tags=["catalog"])
@@ -16,3 +16,10 @@ async def get_event(
     event_id: int, service: CatalogService = Depends(get_catalog_service)
 ):
     return await service.get_event(event_id)
+
+
+@router.get("/{event_id}/seats", response_model=list[SeatRead])
+async def list_seats(
+    event_id: int, service: CatalogService = Depends(get_catalog_service)
+):
+    return await service.list_seats(event_id)

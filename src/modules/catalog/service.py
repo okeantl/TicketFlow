@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import get_db
 from src.core.exceptions import NotFoundError
 from src.core.redis import get_redis
-from src.models import Event
-from src.modules.catalog.schemas import EventRead
+from src.models import Event, Seat, SeatStatus
+from src.modules.catalog.schemas import EventRead, SeatRead
 
 
 class CatalogService:
@@ -36,6 +36,36 @@ class CatalogService:
             )
             return event
         raise NotFoundError("Event not found")
+
+    async def list_seats(self, event_id: int) -> list[SeatRead]:
+        await self.get_event(event_id)
+        result = await self.db.execute(
+            select(Seat)
+            .where(Seat.event_id == event_id)
+            .order_by(Seat.row, Seat.number)
+        )
+        seats = result.scalars().all()
+        if not seats:
+            return []
+        locks = await self.redis.mget([f"seat_lock:{seat.id}" for seat in seats])
+        seat_list = []
+        for seat, lock in zip(seats, locks, strict=True):
+            if seat.status == SeatStatus.SOLD:
+                status = SeatStatus.SOLD
+            elif lock is not None:
+                status = SeatStatus.HELD
+            else:
+                status = SeatStatus.AVAILABLE
+            seat_list.append(
+                SeatRead(
+                    id=seat.id,
+                    row=seat.row,
+                    number=seat.number,
+                    price=seat.price,
+                    status=status.value,
+                )
+            )
+        return seat_list
 
 
 def get_catalog_service(
