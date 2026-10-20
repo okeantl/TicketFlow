@@ -17,6 +17,14 @@ from src.models.seat import Seat, SeatStatus
 
 logger = structlog.get_logger(__name__)
 
+RELEASE_LOCK_SCRIPT = """
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+    return redis.call('DEL', KEYS[1])
+else
+    return 0
+end
+"""
+
 
 def mock_charge_payment(amount) -> bool:
     num = random.random()
@@ -92,8 +100,8 @@ async def main() -> None:
                     order.status = OrderStatus.FAILED
                 await db.commit()
                 keys = [f"seat_lock:{item.seat_id}" for item in order_item]
-                if keys:
-                    await redis.delete(*keys)
+                for key in keys:
+                    await redis.eval(RELEASE_LOCK_SCRIPT, 1, key, str(order.user_id))
                 if should_notify:
                     await publish_message(
                         "notification.send_ticket", {"order_id": order.id}
