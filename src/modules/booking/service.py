@@ -29,12 +29,10 @@ class BookingService:
         )
         if not locked:
             raise AlreadyExistsError("Seat is currently held by another user")
-        seat.status = SeatStatus.HELD
-        await self.db.commit()
 
         return SeatHoldResponse(
             seat_id=seat.id,
-            status=seat.status.value,
+            status=SeatStatus.HELD.value,
             held_until_seconds=HOLD_TTL_SECONDS,
         )
 

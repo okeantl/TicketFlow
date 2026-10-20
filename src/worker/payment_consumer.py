@@ -73,12 +73,12 @@ async def main() -> None:
                     )
                     return
                 should_notify = False
+                order_item_result = await db.execute(
+                    select(OrderItem).where(OrderItem.order_id == order.id)
+                )
+                order_item = order_item_result.scalars().all()
                 if mock_charge_payment(order.total_amount):
                     order.status = OrderStatus.PAID
-                    order_item_result = await db.execute(
-                        select(OrderItem).where(OrderItem.order_id == order.id)
-                    )
-                    order_item = order_item_result.scalars().all()
                     for item in order_item:
                         seat_result = await db.execute(
                             select(Seat).where(Seat.id == item.seat_id)
@@ -87,11 +87,13 @@ async def main() -> None:
                         if seat is None:
                             continue
                         seat.status = SeatStatus.SOLD
-                        await redis.delete(f"seat_lock:{seat.id}")
                     should_notify = True
                 else:
                     order.status = OrderStatus.FAILED
                 await db.commit()
+                keys = [f"seat_lock:{item.seat_id}" for item in order_item]
+                if keys:
+                    await redis.delete(*keys)
                 if should_notify:
                     await publish_message(
                         "notification.send_ticket", {"order_id": order.id}
