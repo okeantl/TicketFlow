@@ -85,7 +85,18 @@ async def main() -> None:
                     select(OrderItem).where(OrderItem.order_id == order.id)
                 )
                 order_item = order_item_result.scalars().all()
-                if mock_charge_payment(order.total_amount):
+                seat_ids = [item.seat_id for item in order_item]
+                sold_result = await db.execute(
+                    select(Seat.id).where(
+                        Seat.id.in_(seat_ids),
+                        Seat.status == SeatStatus.SOLD,
+                    )
+                )
+                already_sold = sold_result.scalars().first() is not None
+                if already_sold:
+                    logger.warning("seat_already_sold", order_id=order_id)
+                    order.status = OrderStatus.FAILED
+                elif mock_charge_payment(order.total_amount):
                     order.status = OrderStatus.PAID
                     for item in order_item:
                         seat_result = await db.execute(
