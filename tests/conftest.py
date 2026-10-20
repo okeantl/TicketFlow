@@ -40,6 +40,15 @@ async def db_session(postgres_container, apply_migrations):
     await engine.dispose()
 
 
+@pytest_asyncio.fixture
+async def session_factory(postgres_container, apply_migrations):
+    engine = create_async_engine(
+        postgres_container.get_connection_url(driver="psycopg")
+    )
+    yield async_sessionmaker(engine, expire_on_commit=False)
+    await engine.dispose()
+
+
 @pytest.fixture(scope="session")
 def redis_container():
     with RedisContainer("redis:7-alpine") as redis:
